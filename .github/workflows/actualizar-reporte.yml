@@ -12,14 +12,17 @@ on:
     paths:
       - "input/Foco_2026.xlsx"
       - "engine/**"
-      - "*.js"
-      - "*.html"
-      - "*.css"
+      - "tests/**"
+      - "app.js"
+      - "slicers.js"
+      - "sw.js"
+      - "index.html"
+      - "style.css"
       - "requirements.txt"
       - ".github/workflows/actualizar-reporte.yml"
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -40,13 +43,24 @@ jobs:
         run: pip install -r requirements.txt
       - name: Probar motor
         run: python -m unittest discover -s tests -v
-      - name: Generar data.js
+      - name: Leer y auditar todas las pestañas
         env:
           EXPECTED_WEEK: ${{ inputs.expected_week }}
         run: |
-          args=(--excel input/Foco_2026.xlsx --output data.js --audit build/auditoria_datos.json)
+          args=(--excel input/Foco_2026.xlsx --output data.js --audit AUDITORIA_DATOS.json)
           if [[ -n "$EXPECTED_WEEK" ]]; then args+=(--expected-week "$EXPECTED_WEEK"); fi
           python -m engine.foco_engine "${args[@]}"
+      - name: Reconciliar Excel contra data.js
+        run: python -m engine.foco_engine.validator --excel input/Foco_2026.xlsx --data data.js --audit AUDITORIA_DATOS.json --report VALIDACION_DATOS.json
+      - name: Guardar datos y auditorías actualizados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.js AUDITORIA_DATOS.json VALIDACION_DATOS.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Actualizar datos FOCO desde Excel"
+            git push
+          fi
       - name: Preparar sitio
         run: python engine/package_site.py --source . --output build/site
       - uses: actions/configure-pages@v5
@@ -56,7 +70,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: auditoria-datos
-          path: build/auditoria_datos.json
+          path: |
+            AUDITORIA_DATOS.json
+            VALIDACION_DATOS.json
 
   deploy:
     environment:
@@ -68,4 +84,3 @@ jobs:
       - name: Publicar GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
