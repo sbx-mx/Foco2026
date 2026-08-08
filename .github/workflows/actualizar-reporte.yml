@@ -1,25 +1,20 @@
-name: Actualizar y publicar FOCO
+name: FOCO directo - auditar, actualizar y publicar
 
 on:
   workflow_dispatch:
     inputs:
       expected_week:
-        description: "Semana mínima esperada (vacío = detectar automáticamente)"
-        required: false
+        description: "Semana mínima obligatoria"
+        required: true
+        default: "31"
         type: string
   push:
     branches: [main]
-    paths:
-      - "input/Foco_2026.xlsx"
-      - "engine/**"
-      - "tests/**"
-      - "app.js"
-      - "slicers.js"
-      - "sw.js"
-      - "index.html"
-      - "style.css"
-      - "requirements.txt"
-      - ".github/workflows/actualizar-reporte.yml"
+    paths-ignore:
+      - "data.js"
+      - "AUDITORIA_DATOS.json"
+      - "VALIDACION_DATOS.json"
+      - "build/**"
 
 permissions:
   contents: write
@@ -27,60 +22,228 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: foco-produccion
   cancel-in-progress: true
 
 jobs:
-  build:
+  auditar-actualizar-publicar:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-      - name: Instalar motor
-        run: pip install -r requirements.txt
-      - name: Probar motor
-        run: python -m unittest discover -s tests -v
-      - name: Leer y auditar todas las pestañas
-        env:
-          EXPECTED_WEEK: ${{ inputs.expected_week }}
-        run: |
-          args=(--excel input/Foco_2026.xlsx --output data.js --audit AUDITORIA_DATOS.json)
-          if [[ -n "$EXPECTED_WEEK" ]]; then args+=(--expected-week "$EXPECTED_WEEK"); fi
-          python -m engine.foco_engine "${args[@]}"
-      - name: Reconciliar Excel contra data.js
-        run: python -m engine.foco_engine.validator --excel input/Foco_2026.xlsx --data data.js --audit AUDITORIA_DATOS.json --report VALIDACION_DATOS.json
-      - name: Guardar datos y auditorías actualizados
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data.js AUDITORIA_DATOS.json VALIDACION_DATOS.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Actualizar datos FOCO desde Excel"
-            git push
-          fi
-      - name: Preparar sitio
-        run: python engine/package_site.py --source . --output build/site
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: build/site
-      - uses: actions/upload-artifact@v4
-        with:
-          name: auditoria-datos
-          path: |
-            AUDITORIA_DATOS.json
-            VALIDACION_DATOS.json
-
-  deploy:
+    timeout-minutes: 20
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
+    env:
+      EXPECTED_WEEK: ${{ github.event.inputs.expected_week || '31' }}
+      PYTHONDONTWRITEBYTECODE: "1"
+
     steps:
-      - name: Publicar GitHub Pages
+      - name: Descargar proyecto
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Limpiar residuos y dejar un solo workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+
+          root = Path.cwd().resolve()
+          workflow = (root / ".github/workflows/actualizar-reporte.yml").resolve()
+          if not workflow.is_file():
+              raise SystemExit("Falta .github/workflows/actualizar-reporte.yml")
+
+          for candidate in workflow.parent.iterdir():
+              if candidate.is_file() and candidate.suffix.lower() in {".yml", ".yaml"} and candidate.resolve() != workflow:
+                  candidate.unlink()
+                  print(f"Workflow adicional eliminado: {candidate}")
+
+          for cache in root.rglob("__pycache__"):
+              if cache.is_dir():
+                  shutil.rmtree(cache)
+          for bytecode in root.rglob("*.pyc"):
+              bytecode.unlink(missing_ok=True)
+
+          for relative in ("build", "AUDITORIA_VISUAL_V7.txt"):
+              target = (root / relative).resolve()
+              if root not in target.parents:
+                  raise SystemExit(f"Ruta de limpieza insegura: {target}")
+              if target.is_dir():
+                  shutil.rmtree(target)
+              elif target.exists():
+                  target.unlink()
+          PY
+
+      - name: Auditar estructura del proyecto
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          required = (
+              "input/Foco_2026.xlsx",
+              "requirements.txt",
+              "actualizar_reporte.py",
+              "engine/foco_engine/__init__.py",
+              "engine/foco_engine/__main__.py",
+              "engine/foco_engine/generator.py",
+              "engine/foco_engine/validator.py",
+              "engine/package_site.py",
+              "tests/test_engine.py",
+              "index.html",
+              "style.css",
+              "app.js",
+              "slicers.js",
+              "sw.js",
+              "manifest.webmanifest",
+              "favicon.ico",
+          )
+          missing = [name for name in required if not Path(name).is_file()]
+          if missing:
+              raise SystemExit("Archivos obligatorios faltantes: " + ", ".join(missing))
+
+          workflows = sorted(Path(".github/workflows").glob("*.y*ml"))
+          if workflows != [Path(".github/workflows/actualizar-reporte.yml")]:
+              raise SystemExit(f"Debe existir un solo workflow: {workflows}")
+
+          json.loads(Path("manifest.webmanifest").read_text(encoding="utf-8"))
+          html = Path("index.html").read_text(encoding="utf-8")
+          for asset in ("style.css", "data.js", "slicers.js", "app.js"):
+              if asset not in html:
+                  raise SystemExit(f"index.html no referencia {asset}")
+
+          if Path("input/Foco_2026.xlsx").stat().st_size == 0:
+              raise SystemExit("El Excel fuente está vacío")
+          print("Estructura FOCO: OK")
+          PY
+
+      - name: Instalar dependencias
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Validar código Python y JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+
+          sources = [Path("actualizar_reporte.py"), *Path("engine").rglob("*.py"), *Path("tests").rglob("*.py")]
+          for source in sources:
+              ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
+          print(f"Sintaxis Python: OK ({len(sources)} archivos)")
+          PY
+          python -m unittest discover -s tests -v
+          node --check app.js
+          node --check slicers.js
+          node --check sw.js
+
+      - name: Generar datos desde todas las pestañas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m engine.foco_engine \
+            --excel input/Foco_2026.xlsx \
+            --output data.js \
+            --audit AUDITORIA_DATOS.json \
+            --expected-week "$EXPECTED_WEEK"
+
+      - name: Reconciliar Excel contra la salida
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m engine.foco_engine.validator \
+            --excel input/Foco_2026.xlsx \
+            --data data.js \
+            --audit AUDITORIA_DATOS.json \
+            --report VALIDACION_DATOS.json
+          node --check data.js
+
+      - name: Validar cobertura crítica y generación determinista
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m engine.foco_engine \
+            --excel input/Foco_2026.xlsx \
+            --output "$RUNNER_TEMP/data-verificacion.js" \
+            --audit "$RUNNER_TEMP/auditoria-verificacion.json" \
+            --expected-week "$EXPECTED_WEEK"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import json
+
+          audit = json.loads(Path("AUDITORIA_DATOS.json").read_text(encoding="utf-8"))
+          validation = json.loads(Path("VALIDACION_DATOS.json").read_text(encoding="utf-8"))
+          if audit.get("status") != "ok" or validation.get("status") != "ok":
+              raise SystemExit("La auditoría o la validación no aprobaron")
+          if audit.get("sourceSha256") != validation.get("sourceSha256"):
+              raise SystemExit("Las salidas no corresponden al mismo Excel")
+
+          week = int(validation["updatedToWeek"])
+          coverage = validation["latestWeekCoverage"]
+          missing = [metric for metric in ("omt", "iplh", "tplh") if int(coverage.get(metric, 0)) <= 0]
+          if missing:
+              raise SystemExit(f"Semana {week} sin cobertura crítica: {', '.join(missing)}")
+
+          primary = Path("data.js").read_bytes()
+          verification = Path(__import__("os").environ["RUNNER_TEMP"]) / "data-verificacion.js"
+          if hashlib.sha256(primary).digest() != hashlib.sha256(verification.read_bytes()).digest():
+              raise SystemExit("La generación no es determinista")
+
+          print(f"Auditoría completa: OK | semana={week} | OMT={coverage['omt']} | IPLH={coverage['iplh']} | TPLH={coverage['tplh']}")
+          PY
+
+      - name: Guardar datos, auditorías y limpieza
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Actualizar y validar FOCO semana ${EXPECTED_WEEK}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Preparar sitio limpio
+        shell: bash
+        run: |
+          set -euo pipefail
+          python engine/package_site.py --source . --output build/site
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Cargar sitio validado
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site
+
+      - name: Conservar auditorías
+        uses: actions/upload-artifact@v4
+        with:
+          name: auditoria-foco-semana-${{ env.EXPECTED_WEEK }}
+          path: |
+            AUDITORIA_DATOS.json
+            VALIDACION_DATOS.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publicar sitio
         id: deployment
         uses: actions/deploy-pages@v4
