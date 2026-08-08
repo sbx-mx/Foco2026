@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#006241">
   <title>FOCO 2026</title>
-  <link rel="manifest" href="manifest.webmanifest?v=7.0.0">
+  <link rel="manifest" href="manifest.webmanifest?v=8.0.0">
   <link rel="icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=7.0.0">
+  <link rel="stylesheet" href="style.css?v=8.0.0">
 </head>
 <body>
   <a class="skipLink" href="#content">Ir al contenido</a>
@@ -37,7 +37,7 @@
       </nav>
       <div class="sidebarFoot">
         <span class="statusDot" aria-hidden="true"></span>
-        <span>Datos actualizados</span>
+        <span id="dataStatus">Validando datos…</span>
       </div>
     </aside>
 
@@ -90,12 +90,12 @@
     </div>
   </div>
 
-  <script src="data.js?v=7.0.0"></script>
-  <script src="slicers.js?v=7.0.0"></script>
-  <script src="app.js?v=7.0.0"></script>
+  <script src="data.js?v=8.0.0"></script>
+  <script src="slicers.js?v=8.0.0"></script>
+  <script src="app.js?v=8.0.0"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=7.0.0'));
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=8.0.0'));
     }
   </script>
 </body>

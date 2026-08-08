@@ -1,0 +1,78 @@
+{
+  "status": "ok",
+  "source": "Foco_2026.xlsx",
+  "year": 2026,
+  "updatedToWeek": 31,
+  "defaultMonth": "Ago",
+  "directoryRows": 968,
+  "metricRows": 29729,
+  "ctcDMRows": 2362,
+  "latestWeekCoverage": {
+    "bebida": 923,
+    "costo": 1021,
+    "ctc": 851,
+    "cx": 924,
+    "desempeno": 924,
+    "encuestas": 925,
+    "nps": 924,
+    "seg": 950
+  },
+  "sheets": [
+    {
+      "sheet": "OMT",
+      "rows_read": 26312,
+      "rows_in_year": 26312,
+      "max_week": 30,
+      "rows_latest_week": 0,
+      "duplicates": 0
+    },
+    {
+      "sheet": "Segundas Cx",
+      "rows_read": 29323,
+      "rows_in_year": 29323,
+      "max_week": 31,
+      "rows_latest_week": 950,
+      "duplicates": 113
+    },
+    {
+      "sheet": "IPLH_TPLH_Real",
+      "rows_read": 28863,
+      "rows_in_year": 28863,
+      "max_week": 30,
+      "rows_latest_week": 0,
+      "duplicates": 0
+    },
+    {
+      "sheet": "Costo",
+      "rows_read": 29430,
+      "rows_in_year": 29430,
+      "max_week": 31,
+      "rows_latest_week": 1021,
+      "duplicates": 0
+    },
+    {
+      "sheet": "CTC_Tienda",
+      "rows_read": 27415,
+      "rows_in_year": 27415,
+      "max_week": 31,
+      "rows_latest_week": 886,
+      "duplicates": 0
+    },
+    {
+      "sheet": "Base_Qualtrics",
+      "rows_read": 26738,
+      "rows_in_year": 26738,
+      "max_week": 31,
+      "rows_latest_week": 981,
+      "duplicates": 63
+    },
+    {
+      "sheet": "CTC_DM",
+      "rows_read": 2362,
+      "rows_in_year": 2362,
+      "max_week": 31,
+      "rows_latest_week": 76,
+      "duplicates": 0
+    }
+  ]
+}

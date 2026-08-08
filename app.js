@@ -1,4 +1,4 @@
-const D = window.FOCO_DATA;
+const D = window.FOCO_DATA || { directory: [], metrics: [], monthWeeks: {} };
 const $ = id => document.getElementById(id);
 let view = 'rd';
 
@@ -50,6 +50,8 @@ let objectives = JSON.parse(localStorage.focoV6Objectives || localStorage.focoV5
 let manual = JSON.parse(localStorage.focoV6Manual || localStorage.focoV5Manual || localStorage.focoV4Manual || '{}');
 
 function init() {
+  const dataStatus = $('dataStatus');
+  if (dataStatus) dataStatus.textContent = D.updatedToWeek ? `Datos al S${D.updatedToWeek}` : 'Datos no disponibles';
   months.forEach(m => $('mes').add(new Option(m, m)));
   $('mes').value = D.defaultMonth && months.includes(D.defaultMonth) ? D.defaultMonth : (months.includes('Jul') ? 'Jul' : (months[0] || 'Ene'));
 
