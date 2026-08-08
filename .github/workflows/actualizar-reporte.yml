@@ -1,0 +1,71 @@
+name: Actualizar y publicar FOCO
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_week:
+        description: "Semana mínima esperada (vacío = detectar automáticamente)"
+        required: false
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - "input/Foco_2026.xlsx"
+      - "engine/**"
+      - "*.js"
+      - "*.html"
+      - "*.css"
+      - "requirements.txt"
+      - ".github/workflows/actualizar-reporte.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Instalar motor
+        run: pip install -r requirements.txt
+      - name: Probar motor
+        run: python -m unittest discover -s tests -v
+      - name: Generar data.js
+        env:
+          EXPECTED_WEEK: ${{ inputs.expected_week }}
+        run: |
+          args=(--excel input/Foco_2026.xlsx --output data.js --audit build/auditoria_datos.json)
+          if [[ -n "$EXPECTED_WEEK" ]]; then args+=(--expected-week "$EXPECTED_WEEK"); fi
+          python -m engine.foco_engine "${args[@]}"
+      - name: Preparar sitio
+        run: python engine/package_site.py --source . --output build/site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site
+      - uses: actions/upload-artifact@v4
+        with:
+          name: auditoria-datos
+          path: build/auditoria_datos.json
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Publicar GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
