@@ -1,4 +1,4 @@
-const CACHE_NAME = 'foco-2026-executive-design-v8';
+const CACHE_NAME = 'foco-2026-python-engine-v9';
 const APP_SHELL = [
   './','./index.html','./style.css','./slicers.js','./app.js','./data.js','./manifest.webmanifest','./favicon.ico',
   './assets/icons/icon-72.png','./assets/icons/icon-96.png','./assets/icons/icon-128.png','./assets/icons/icon-144.png',

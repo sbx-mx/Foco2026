@@ -12,5 +12,5 @@ if __name__ == "__main__":
     if "--output" not in sys.argv:
         sys.argv.extend(["--output", "data.js"])
     if "--audit" not in sys.argv:
-        sys.argv.extend(["--audit", "build/auditoria_datos.json"])
+        sys.argv.extend(["--audit", "AUDITORIA_DATOS.json"])
     raise SystemExit(main())

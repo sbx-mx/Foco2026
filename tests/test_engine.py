@@ -1,6 +1,8 @@
 import unittest
 
-from engine.foco_engine.generator import normalize_ceco, parse_percent
+from openpyxl import Workbook
+
+from engine.foco_engine.generator import _locate_table, normalize_ceco, parse_percent
 
 
 class EngineTests(unittest.TestCase):
@@ -17,7 +19,17 @@ class EngineTests(unittest.TestCase):
         self.assertIsNone(parse_percent(""))
         self.assertIsNone(normalize_ceco(None))
 
+    def test_detects_header_after_title_rows(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Prueba"
+        sheet.append(["Reporte semanal"])
+        sheet.append([None, None, None])
+        sheet.append(["CeCo", "Año", "Semana", "Valor"])
+        header_row, headers = _locate_table(sheet, ("Año", "Semana"))
+        self.assertEqual(header_row, 3)
+        self.assertEqual(headers["ceco"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
-

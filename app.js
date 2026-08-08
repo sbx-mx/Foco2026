@@ -297,30 +297,37 @@ function renderExec(type) {
   $('content').innerHTML = html;
 }
 
-function renderScopeWeekSummary(k, metric, weekNums) {
+function metricDisplay(k, primary, secondary = null) {
+  if (k !== 'iplh') return fmt(primary, metricDefs[k].fmt);
+  if (primary == null && secondary == null) return '';
+  return `<span class="metricPair">${primary == null ? '—' : fmt(primary, 'num1')} / ${secondary == null ? '—' : fmt(secondary, 'num1')}</span>`;
+}
+
+function renderScopeWeekSummary(k, metric, weekNums, secondary = null) {
   const def = metricDefs[k];
-  const wk = metric.weeks.map((v, i) => `<div class="wk"><small>${weekNums[i]}</small><b class="${cls(k, v)}">${fmt(v, def.fmt)}</b></div>`).join('');
-  return `<div class="metricSummary">${wk}<div class="promMini"><small>Prom</small><b class="${cls(k, metric.prom)}">${fmt(metric.prom, def.fmt)}</b></div></div>`;
+  const wk = metric.weeks.map((v, i) => `<div class="wk"><small>${weekNums[i]}</small><b class="${cls(k, v)}">${metricDisplay(k, v, secondary?.weeks[i])}</b></div>`).join('');
+  return `<div class="metricSummary">${wk}<div class="promMini"><small>Prom</small><b class="${cls(k, metric.prom)}">${metricDisplay(k, metric.prom, secondary?.prom)}</b></div></div>`;
 }
 
 function renderExecMetric(groups, scopeCecos, k, type) {
   const w = weeks();
   const scopeMetric = entity(scopeCecos, k);
-  const rows = groups.map(g => ({ ...g, m: entity(g.cecos, k) }))
+  const scopeSecondary = k === 'iplh' ? entity(scopeCecos, 'tplh') : null;
+  const rows = groups.map(g => ({ ...g, m: entity(g.cecos, k), secondary: k === 'iplh' ? entity(g.cecos, 'tplh') : null }))
     .filter(g => g.m.prom != null)
     .sort((a, b) => k === 'costo' ? (a.m.prom ?? 999) - (b.m.prom ?? 999) : (b.m.prom ?? -999) - (a.m.prom ?? -999));
 
   const label = type === 'rd' ? 'Prom Regional' : 'Prom DM';
   const tableLabel = type === 'rd' ? 'DM' : 'Tienda';
   const def = metricDefs[k];
-  const summary = renderScopeWeekSummary(k, scopeMetric, w);
+  const summary = renderScopeWeekSummary(k, scopeMetric, w, scopeSecondary);
   const trend = trendText(k, scopeMetric.weeks);
   const trendCls = trendClass(k, scopeMetric.weeks);
 
   let html = `<div class="metricBlock dashboardMetric">
     <div class="metricPanelHead">
       <div class="metricName"><span>${def.name}</span><b class="${trendCls}">${trend}</b></div>
-      <div class="metricProm"><small>${label}</small><strong class="${cls(k, scopeMetric.prom)}">${fmt(scopeMetric.prom, def.fmt)}</strong></div>
+      <div class="metricProm"><small>${label}</small><strong class="${cls(k, scopeMetric.prom)}">${metricDisplay(k, scopeMetric.prom, scopeSecondary?.prom)}</strong></div>
     </div>
     ${summary}
     <table class="cleanTable">
@@ -328,7 +335,7 @@ function renderExecMetric(groups, scopeCecos, k, type) {
       <thead><tr><th>${tableLabel}</th>${w.map(x => `<th>${x}</th>`).join('')}<th>Prom</th></tr></thead>
       <tbody>`;
 
-  html += rows.map(g => `<tr><td title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</td>${g.m.weeks.map(v => `<td class="value ${cls(k, v)}">${fmt(v, def.fmt)}</td>`).join('')}<td class="value prom ${cls(k, g.m.prom)}">${fmt(g.m.prom, def.fmt)}</td></tr>`).join('');
+  html += rows.map(g => `<tr><td title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</td>${g.m.weeks.map((v, i) => `<td class="value ${cls(k, v)}">${metricDisplay(k, v, g.secondary?.weeks[i])}</td>`).join('')}<td class="value prom ${cls(k, g.m.prom)}">${metricDisplay(k, g.m.prom, g.secondary?.prom)}</td></tr>`).join('');
   html += `</tbody></table></div>`;
   return html;
 }

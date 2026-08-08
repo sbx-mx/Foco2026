@@ -1,0 +1,152 @@
+{
+  "status": "ok",
+  "source": "Foco_2026.xlsx",
+  "sourceSha256": "5e34677c8bfc14fcc20d25bfe60c40842abb14ae89cca93f785c5f681d4815ca",
+  "year": 2026,
+  "updatedToWeek": 31,
+  "latestWeekCoverage": {
+    "omt": 890,
+    "seg": 950,
+    "iplh": 938,
+    "tplh": 938,
+    "costo": 1020,
+    "ctc": 851,
+    "encuestas": 925,
+    "nps": 924,
+    "cx": 924,
+    "desempeno": 924,
+    "bebida": 923
+  },
+  "structuralChecks": [
+    {
+      "name": "Directorio",
+      "sourceRows": 968,
+      "outputRows": 968,
+      "status": "ok"
+    },
+    {
+      "name": "Base_Mes_Semana",
+      "sourceMonths": 12,
+      "outputMonths": 12,
+      "status": "ok"
+    },
+    {
+      "name": "CTC_DM",
+      "sourceRows": 2362,
+      "outputRows": 2362,
+      "status": "ok"
+    }
+  ],
+  "checks": [
+    {
+      "metric": "omt",
+      "sourceValues": 27202,
+      "outputValues": 27202,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    },
+    {
+      "metric": "seg",
+      "sourceValues": 29208,
+      "outputValues": 29208,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    },
+    {
+      "metric": "iplh",
+      "sourceValues": 28862,
+      "outputValues": 28862,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    },
+    {
+      "metric": "tplh",
+      "sourceValues": 28862,
+      "outputValues": 28862,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    },
+    {
+      "metric": "costo",
+      "sourceValues": 29426,
+      "outputValues": 29426,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    },
+    {
+      "metric": "ctc",
+      "sourceValues": 26477,
+      "outputValues": 26477,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    },
+    {
+      "metric": "encuestas",
+      "sourceValues": 26642,
+      "outputValues": 26642,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    },
+    {
+      "metric": "nps",
+      "sourceValues": 26608,
+      "outputValues": 26608,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    },
+    {
+      "metric": "cx",
+      "sourceValues": 26549,
+      "outputValues": 26549,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    },
+    {
+      "metric": "desempeno",
+      "sourceValues": 26606,
+      "outputValues": 26606,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    },
+    {
+      "metric": "bebida",
+      "sourceValues": 26589,
+      "outputValues": 26589,
+      "missing": 0,
+      "extra": 0,
+      "mismatches": [],
+      "sampleMissing": [],
+      "status": "ok"
+    }
+  ]
+}

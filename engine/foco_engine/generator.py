@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import math
 import os
 import re
@@ -20,6 +21,7 @@ MONTH_ORDER = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "O
 @dataclass(frozen=True)
 class SheetAudit:
     sheet: str
+    header_row: int
     rows_read: int
     rows_in_year: int
     max_week: int | None
@@ -117,31 +119,37 @@ def _col(headers: dict[str, int], *names: str) -> int:
     raise ValueError(f"No se encontró ninguna columna: {', '.join(names)}")
 
 
+def _locate_table(sheet: Any, required: Iterable[str], max_rows: int = 10) -> tuple[int, dict[str, int]]:
+    required_keys = {_header_key(name) for name in required}
+    for row_number, row in enumerate(sheet.iter_rows(min_row=1, max_row=max_rows, values_only=True), start=1):
+        headers = _header_map(row)
+        if required_keys.issubset(headers):
+            return row_number, headers
+    raise ValueError(f"{sheet.title}: no se encontró encabezado con {', '.join(required)} en las primeras {max_rows} filas")
+
+
 def _scan_years(workbook: Any) -> list[int]:
     years: set[int] = set()
     for name in ("Base_Mes_Semana", "OMT", "Segundas Cx", "IPLH_TPLH_Real", "Costo", "CTC_DM", "CTC_Tienda", "Base_Qualtrics"):
         sheet = _required_sheet(workbook, name)
-        for row in sheet.iter_rows(min_row=2, values_only=True):
-            number = _number(row[0] if row else None)
+        header_row, headers = _locate_table(sheet, ("Año",))
+        year_i = _col(headers, "Año")
+        for row in sheet.iter_rows(min_row=header_row + 1, values_only=True):
+            number = _number(row[year_i] if len(row) > year_i else None)
             if number is not None:
                 years.add(int(number))
     return sorted(years)
 
 
 def _latest_week(workbook: Any, year: int) -> int:
-    specs = {
-        "OMT": 3,
-        "Segundas Cx": 3,
-        "IPLH_TPLH_Real": 3,
-        "Costo": 3,
-        "CTC_DM": 1,
-        "CTC_Tienda": 1,
-        "Base_Qualtrics": 1,
-    }
+    specs = ("OMT", "Segundas Cx", "IPLH_TPLH_Real", "Costo", "CTC_DM", "CTC_Tienda", "Base_Qualtrics")
     weeks: list[int] = []
-    for name, week_index in specs.items():
-        for row in _required_sheet(workbook, name).iter_rows(min_row=2, values_only=True):
-            row_year = _number(row[0] if row else None)
+    for name in specs:
+        sheet = _required_sheet(workbook, name)
+        header_row, headers = _locate_table(sheet, ("Año", "Semana"))
+        year_i, week_index = _col(headers, "Año"), _col(headers, "Semana")
+        for row in sheet.iter_rows(min_row=header_row + 1, values_only=True):
+            row_year = _number(row[year_i] if len(row) > year_i else None)
             week = _number(row[week_index] if len(row) > week_index else None)
             if row_year is not None and int(row_year) == year and week is not None:
                 weeks.append(int(week))
@@ -152,9 +160,8 @@ def _latest_week(workbook: Any, year: int) -> int:
 
 def _directory(workbook: Any) -> list[dict[str, str]]:
     sheet = _required_sheet(workbook, "Directorio")
-    rows = sheet.iter_rows(values_only=True)
-    next(rows, None)  # fila numérica heredada del archivo base
-    headers = _header_map(next(rows, ()))
+    header_row, headers = _locate_table(sheet, ("CC", "Tienda", "DM"))
+    rows = sheet.iter_rows(min_row=header_row + 1, values_only=True)
     indexes = {
         "ceco": _col(headers, "CC"),
         "tienda": _col(headers, "Tienda"),
@@ -181,12 +188,14 @@ def _directory(workbook: Any) -> list[dict[str, str]]:
 
 def _month_weeks(workbook: Any, year: int) -> tuple[dict[str, list[int]], dict[int, str]]:
     sheet = _required_sheet(workbook, "Base_Mes_Semana")
+    header_row, headers = _locate_table(sheet, ("Año", "Mes", "Semana"))
+    year_i, month_i, week_i = _col(headers, "Año"), _col(headers, "Mes"), _col(headers, "Semana")
     grouped: dict[str, list[int]] = defaultdict(list)
     week_month: dict[int, str] = {}
-    for row in sheet.iter_rows(min_row=2, values_only=True):
-        row_year = _number(row[0] if row else None)
-        week = _number(row[2] if len(row) > 2 else None)
-        month = _clean_text(row[1] if len(row) > 1 else None).title()[:3]
+    for row in sheet.iter_rows(min_row=header_row + 1, values_only=True):
+        row_year = _number(row[year_i] if len(row) > year_i else None)
+        week = _number(row[week_i] if len(row) > week_i else None)
+        month = _clean_text(row[month_i] if len(row) > month_i else None).title()[:3]
         if row_year is None or int(row_year) != year or week is None or month not in MONTH_ORDER:
             continue
         week_int = int(week)
@@ -205,6 +214,7 @@ class MetricsBuilder:
         self.latest_week = latest_week
         self.records: dict[tuple[str, int], dict[str, Any]] = {}
         self.audits: list[SheetAudit] = []
+        self.qualtrics_accumulator: dict[tuple[str, int], dict[str, Any]] = {}
 
     def record(self, ceco: Any, week: Any) -> dict[str, Any] | None:
         code = normalize_ceco(ceco)
@@ -218,14 +228,15 @@ class MetricsBuilder:
 
     def add_sheet(self, workbook: Any, name: str, loader: Callable[[tuple[Any, ...], dict[str, int], "MetricsBuilder"], tuple[str, int] | None]) -> None:
         sheet = _required_sheet(workbook, name)
-        iterator = sheet.iter_rows(values_only=True)
-        headers = _header_map(next(iterator, ()))
+        header_row, headers = _locate_table(sheet, ("Año", "Semana"))
+        iterator = sheet.iter_rows(min_row=header_row + 1, values_only=True)
+        year_i = _col(headers, "Año")
         rows_read = rows_in_year = rows_latest = duplicates = 0
         max_week: int | None = None
         seen: set[tuple[str, int]] = set()
         for row in iterator:
             rows_read += 1
-            row_year = _number(row[0] if row else None)
+            row_year = _number(row[year_i] if len(row) > year_i else None)
             if row_year is None or int(row_year) != self.year:
                 continue
             rows_in_year += 1
@@ -239,7 +250,30 @@ class MetricsBuilder:
             if key in seen:
                 duplicates += 1
             seen.add(key)
-        self.audits.append(SheetAudit(name, rows_read, rows_in_year, max_week, rows_latest, duplicates))
+        self.audits.append(SheetAudit(name, header_row, rows_read, rows_in_year, max_week, rows_latest, duplicates))
+
+    def accumulate_qualtrics(self, record: dict[str, Any], values: dict[str, Any]) -> None:
+        key = (record["ceco"], record["semana"])
+        accumulator = self.qualtrics_accumulator.setdefault(key, {"encuestas": 0.0, "weighted": {}})
+        surveys = _number(values.get("encuestas"))
+        weight = surveys if surveys is not None and surveys > 0 else 1.0
+        if surveys is not None:
+            accumulator["encuestas"] += surveys
+        for metric in ("nps", "cx", "desempeno", "bebida"):
+            value = _number(values.get(metric))
+            if value is None:
+                continue
+            total, total_weight = accumulator["weighted"].get(metric, (0.0, 0.0))
+            accumulator["weighted"][metric] = (total + value * weight, total_weight + weight)
+
+    def finalize_qualtrics(self) -> None:
+        for key, accumulator in self.qualtrics_accumulator.items():
+            record = self.records[key]
+            if accumulator["encuestas"]:
+                record["encuestas"] = _rounded(accumulator["encuestas"])
+            for metric, (total, weight) in accumulator["weighted"].items():
+                if weight:
+                    record[metric] = _rounded(total / weight)
 
 
 def _set(record: dict[str, Any] | None, **values: Any) -> None:
@@ -294,28 +328,27 @@ def _load_qualtrics(row: tuple[Any, ...], h: dict[str, int], builder: MetricsBui
     record = builder.record(ceco, row[_col(h, "Semana")])
     if record is None:
         return None
-    _set(
-        record,
-        encuestas=row[_col(h, "Encuestas")],
-        nps=row[_col(h, "NPS")],
-        cx=parse_percent(row[_col(h, "Conexión", "Conexion")]),
-        desempeno=parse_percent(row[_col(h, "Desempeño operacional", "Desempeno operacional")]),
-        bebida=parse_percent(row[_col(h, "Sabor de la bebida")]),
-    )
+    builder.accumulate_qualtrics(record, {
+        "encuestas": row[_col(h, "Encuestas")],
+        "nps": row[_col(h, "NPS")],
+        "cx": parse_percent(row[_col(h, "Conexión", "Conexion")]),
+        "desempeno": parse_percent(row[_col(h, "Desempeño operacional", "Desempeno operacional")]),
+        "bebida": parse_percent(row[_col(h, "Sabor de la bebida")]),
+    })
     return record["ceco"], record["semana"]
 
 
 def _ctc_dm(workbook: Any, year: int, latest_week: int) -> tuple[list[dict[str, Any]], SheetAudit]:
     sheet = _required_sheet(workbook, "CTC_DM")
-    iterator = sheet.iter_rows(values_only=True)
-    headers = _header_map(next(iterator, ()))
-    week_i, dm_i, value_i = _col(headers, "Semana"), _col(headers, "DM"), _col(headers, "Part FHW")
+    header_row, headers = _locate_table(sheet, ("Año", "Semana", "DM", "Part FHW"))
+    iterator = sheet.iter_rows(min_row=header_row + 1, values_only=True)
+    year_i, week_i, dm_i, value_i = _col(headers, "Año"), _col(headers, "Semana"), _col(headers, "DM"), _col(headers, "Part FHW")
     result: list[dict[str, Any]] = []
     rows_read = rows_in_year = rows_latest = 0
     max_week: int | None = None
     for row in iterator:
         rows_read += 1
-        row_year, week = _number(row[0]), _number(row[week_i])
+        row_year, week = _number(row[year_i]), _number(row[week_i])
         if row_year is None or int(row_year) != year or week is None:
             continue
         rows_in_year += 1
@@ -329,7 +362,7 @@ def _ctc_dm(workbook: Any, year: int, latest_week: int) -> tuple[list[dict[str, 
         value = _rounded(row[value_i])
         item["ctc"] = value
         result.append(item)
-    return result, SheetAudit("CTC_DM", rows_read, rows_in_year, max_week, rows_latest)
+    return result, SheetAudit("CTC_DM", header_row, rows_read, rows_in_year, max_week, rows_latest)
 
 
 def _atomic_write(path: Path, content: str) -> None:
@@ -358,6 +391,7 @@ def build_report(
     excel = Path(excel_path)
     if not excel.is_file():
         raise FileNotFoundError(f"No existe el Excel base: {excel}")
+    source_sha256 = hashlib.sha256(excel.read_bytes()).hexdigest()
     workbook = load_workbook(excel, read_only=True, data_only=True)
     try:
         years = _scan_years(workbook)
@@ -379,11 +413,16 @@ def build_report(
         builder.add_sheet(workbook, "Costo", _load_cost)
         builder.add_sheet(workbook, "CTC_Tienda", _load_ctc_store)
         builder.add_sheet(workbook, "Base_Qualtrics", _load_qualtrics)
+        builder.finalize_qualtrics()
         ctc_dm, ctc_audit = _ctc_dm(workbook, selected_year, latest_week)
 
         metrics = sorted(builder.records.values(), key=lambda item: (int(item["ceco"]), item["semana"]))
         latest_coverage = defaultdict(int)
+        total_coverage = defaultdict(int)
         for item in metrics:
+            for key in ("omt", "seg", "iplh", "tplh", "costo", "ctc", "encuestas", "nps", "cx", "desempeno", "bebida"):
+                if item.get(key) is not None:
+                    total_coverage[key] += 1
             if item["semana"] == latest_week:
                 for key in ("omt", "seg", "iplh", "tplh", "costo", "ctc", "encuestas", "nps", "cx", "desempeno", "bebida"):
                     if item.get(key) is not None:
@@ -391,7 +430,8 @@ def build_report(
 
         payload = {
             "source": excel.name,
-            "version": f"w{latest_week}-python-engine",
+            "sourceSha256": source_sha256,
+            "version": f"w{latest_week}-python-engine-v2",
             "updatedToWeek": latest_week,
             "defaultMonth": default_month,
             "directory": directory,
@@ -402,6 +442,9 @@ def build_report(
         audit = {
             "status": "ok",
             "source": excel.name,
+            "sourceSha256": source_sha256,
+            "sourceSizeBytes": excel.stat().st_size,
+            "engineVersion": 2,
             "year": selected_year,
             "updatedToWeek": latest_week,
             "defaultMonth": default_month,
@@ -409,8 +452,19 @@ def build_report(
             "metricRows": len(metrics),
             "ctcDMRows": len(ctc_dm),
             "latestWeekCoverage": dict(sorted(latest_coverage.items())),
+            "totalMetricCoverage": dict(sorted(total_coverage.items())),
+            "qualtricsDuplicatePolicy": "promedio ponderado por Encuestas para NPS, Conexión, Desempeño y Bebida; Encuestas se suman",
+            "workbookSheets": {
+                sheet.title: {"rows": sheet.max_row, "columns": sheet.max_column}
+                for sheet in workbook.worksheets
+            },
             "sheets": [asdict(item) for item in (*builder.audits, ctc_audit)],
         }
+
+        critical = ("omt", "iplh", "tplh")
+        missing_critical = [metric for metric in critical if latest_coverage.get(metric, 0) == 0]
+        if missing_critical:
+            raise ValueError(f"La semana {latest_week} existe, pero quedó sin datos críticos: {', '.join(missing_critical)}")
     finally:
         workbook.close()
 
@@ -421,4 +475,3 @@ def build_report(
     _atomic_write(output, js)
     _atomic_write(audit_output, json.dumps(audit, ensure_ascii=False, indent=2, allow_nan=False) + "\n")
     return BuildResult(selected_year, latest_week, default_month, len(directory), len(metrics), len(ctc_dm), str(output), str(audit_output))
-

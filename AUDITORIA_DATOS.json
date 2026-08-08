@@ -1,0 +1,151 @@
+{
+  "status": "ok",
+  "source": "Foco_2026.xlsx",
+  "sourceSha256": "5e34677c8bfc14fcc20d25bfe60c40842abb14ae89cca93f785c5f681d4815ca",
+  "sourceSizeBytes": 10932807,
+  "engineVersion": 2,
+  "year": 2026,
+  "updatedToWeek": 31,
+  "defaultMonth": "Ago",
+  "directoryRows": 968,
+  "metricRows": 29725,
+  "ctcDMRows": 2362,
+  "latestWeekCoverage": {
+    "bebida": 923,
+    "costo": 1020,
+    "ctc": 851,
+    "cx": 924,
+    "desempeno": 924,
+    "encuestas": 925,
+    "iplh": 938,
+    "nps": 924,
+    "omt": 890,
+    "seg": 950,
+    "tplh": 938
+  },
+  "totalMetricCoverage": {
+    "bebida": 26589,
+    "costo": 29426,
+    "ctc": 26477,
+    "cx": 26549,
+    "desempeno": 26606,
+    "encuestas": 26642,
+    "iplh": 28862,
+    "nps": 26608,
+    "omt": 27202,
+    "seg": 29208,
+    "tplh": 28862
+  },
+  "qualtricsDuplicatePolicy": "promedio ponderado por Encuestas para NPS, Conexión, Desempeño y Bebida; Encuestas se suman",
+  "workbookSheets": {
+    "Instrucciones ": {
+      "rows": 17,
+      "columns": 2
+    },
+    "Directorio": {
+      "rows": 970,
+      "columns": 60
+    },
+    "Base_Mes_Semana": {
+      "rows": 53,
+      "columns": 3
+    },
+    "OMT": {
+      "rows": 27203,
+      "columns": 8
+    },
+    "Segundas Cx": {
+      "rows": 29324,
+      "columns": 5
+    },
+    "IPLH_TPLH_Real": {
+      "rows": 28864,
+      "columns": 6
+    },
+    "Costo": {
+      "rows": 29427,
+      "columns": 12
+    },
+    "CTC_DM": {
+      "rows": 2363,
+      "columns": 4
+    },
+    "CTC_Tienda": {
+      "rows": 27416,
+      "columns": 5
+    },
+    "Base_Qualtrics": {
+      "rows": 26739,
+      "columns": 26
+    },
+    "Hoja1": {
+      "rows": 949,
+      "columns": 2
+    }
+  },
+  "sheets": [
+    {
+      "sheet": "OMT",
+      "header_row": 1,
+      "rows_read": 27202,
+      "rows_in_year": 27202,
+      "max_week": 31,
+      "rows_latest_week": 890,
+      "duplicates": 0
+    },
+    {
+      "sheet": "Segundas Cx",
+      "header_row": 1,
+      "rows_read": 29323,
+      "rows_in_year": 29323,
+      "max_week": 31,
+      "rows_latest_week": 950,
+      "duplicates": 113
+    },
+    {
+      "sheet": "IPLH_TPLH_Real",
+      "header_row": 1,
+      "rows_read": 28863,
+      "rows_in_year": 28863,
+      "max_week": 31,
+      "rows_latest_week": 938,
+      "duplicates": 0
+    },
+    {
+      "sheet": "Costo",
+      "header_row": 1,
+      "rows_read": 29426,
+      "rows_in_year": 29426,
+      "max_week": 31,
+      "rows_latest_week": 1020,
+      "duplicates": 0
+    },
+    {
+      "sheet": "CTC_Tienda",
+      "header_row": 1,
+      "rows_read": 27415,
+      "rows_in_year": 27415,
+      "max_week": 31,
+      "rows_latest_week": 886,
+      "duplicates": 0
+    },
+    {
+      "sheet": "Base_Qualtrics",
+      "header_row": 1,
+      "rows_read": 26738,
+      "rows_in_year": 26738,
+      "max_week": 31,
+      "rows_latest_week": 981,
+      "duplicates": 63
+    },
+    {
+      "sheet": "CTC_DM",
+      "header_row": 1,
+      "rows_read": 2362,
+      "rows_in_year": 2362,
+      "max_week": 31,
+      "rows_latest_week": 76,
+      "duplicates": 0
+    }
+  ]
+}

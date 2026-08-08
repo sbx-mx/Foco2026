@@ -4,6 +4,7 @@
   --ink:#17211d;--muted:#617069;--danger:#c43131;--warning:#a86700;
   --radius:18px;--radius-sm:12px;--shadow:0 12px 30px rgba(22,49,38,.08)
 }
+.metricPair{white-space:nowrap;font-size:.88em;letter-spacing:-.02em}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,Aptos,"Segoe UI",Arial,sans-serif;background:var(--surface);color:var(--ink);line-height:1.4}
 button,select,input,textarea{font:inherit}.skipLink{position:fixed;left:12px;top:-60px;z-index:999;background:#fff;color:var(--sb);padding:10px 14px;border-radius:10px}.skipLink:focus{top:12px}
 .appShell{min-height:100vh;display:grid;grid-template-columns:244px minmax(0,1fr)}
