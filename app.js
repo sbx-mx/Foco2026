@@ -63,6 +63,8 @@ function setView(nextView, pushHistory = true) {
     const active = x.dataset.view === view;
     x.classList.toggle('active', active);
     x.setAttribute('aria-current', active ? 'page' : 'false');
+    x.setAttribute('aria-selected', active ? 'true' : 'false');
+    x.tabIndex = active ? 0 : -1;
   });
   if (pushHistory && location.hash !== `#${view}`) history.pushState({ view }, '', `#${view}`);
   syncFilters();
@@ -83,8 +85,20 @@ function init() {
   fillStoreAll();
   if (typeof window.initExecutiveSlicers === 'function') window.initExecutiveSlicers();
 
-  document.querySelectorAll('.tab').forEach(b => {
+  const tabs = [...document.querySelectorAll('.tab')];
+  tabs.forEach((b, i) => {
     b.onclick = () => setView(b.dataset.view);
+    b.onkeydown = e => {
+      if (!['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) return;
+      e.preventDefault();
+      let next = i;
+      if (e.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+      if (e.key === 'ArrowRight') next = (i + 1) % tabs.length;
+      if (e.key === 'Home') next = 0;
+      if (e.key === 'End') next = tabs.length - 1;
+      tabs[next].focus();
+      setView(tabs[next].dataset.view);
+    };
   });
 
   $('mes').onchange = scheduleRender;
@@ -444,8 +458,21 @@ function escapeHtml(s) {
 }
 
 
-function exportPDF() {
+function setExportState(busy) {
   const btn = $('exportBtn');
+  if (!btn) return;
+  btn.disabled = busy;
+  btn.classList.toggle('isBusy', busy);
+  const label = btn.querySelector('.exportLabel');
+  if (label) label.textContent = busy ? 'Preparando PDF...' : 'Exportar PDF';
+}
+
+function cleanupPrintMode() {
+  document.body.classList.remove('exporting', 'export-rd', 'export-dm', 'export-tienda');
+  setExportState(false);
+}
+
+function exportPDF() {
   const selectedMonth = $('mes') ? $('mes').value : '';
   const selectedStore = $('store') && view === 'tienda' && byCeco[$('store').value] ? byCeco[$('store').value].tienda : '';
   const selectedDM = $('dm') && view === 'dm' ? $('dm').value : '';
@@ -454,30 +481,17 @@ function exportPDF() {
   const oldTitle = document.title;
   document.title = `FOCO 2026 - ${scope} - ${selectedMonth} 2026`;
   document.body.classList.add('exporting', `export-${view}`);
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Preparando PDF...';
-  }
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => {
-      document.body.classList.remove('exporting', 'export-rd', 'export-dm', 'export-tienda');
+  setExportState(true);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.print();
       document.title = oldTitle;
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = '⬇ Exportar PDF';
-      }
-    }, 700);
-  }, 150);
+    });
+  });
 }
 
-window.addEventListener('afterprint', () => {
-  document.body.classList.remove('exporting', 'export-rd', 'export-dm', 'export-tienda');
-  const btn = $('exportBtn');
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = '⬇ Exportar PDF';
-  }
-});
+window.addEventListener('afterprint', cleanupPrintMode);
+window.addEventListener('beforeprint', () => document.body.classList.add('exporting', `export-${view}`));
 
 init();

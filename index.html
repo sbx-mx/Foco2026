@@ -8,21 +8,20 @@
   <link rel="manifest" href="manifest.webmanifest?v=8.1.0">
   <link rel="icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=8.1.0">
+  <link rel="stylesheet" href="style.css?v=9.0.0">
 </head>
 <body>
   <a class="skipLink" href="#content">Ir al contenido</a>
   <div class="appShell">
-    <div class="workspace">
       <nav class="executiveNav" aria-label="Navegación principal">
         <a class="navBrand" href="#rd" aria-label="FOCO 2026 · Inicio">
           <span class="mark"><img src="assets/icons/icon-96.png" alt=""></span>
           <span class="appTitle"><strong>FOCO 2026</strong><small>Executive Dashboard</small></span>
         </a>
-        <div class="tabs" aria-label="Vistas FOCO">
-          <button class="tab active" data-view="rd" type="button"><span>RD</span></button>
-          <button class="tab" data-view="dm" type="button"><span>DM</span></button>
-          <button class="tab" data-view="tienda" type="button"><span>Tienda</span></button>
+        <div class="tabs" role="tablist" aria-label="Vistas FOCO">
+          <button class="tab active" data-view="rd" type="button" role="tab" aria-selected="true"><span>RD</span><small>Región</small></button>
+          <button class="tab" data-view="dm" type="button" role="tab" aria-selected="false"><span>DM</span><small>Distrito</small></button>
+          <button class="tab" data-view="tienda" type="button" role="tab" aria-selected="false"><span>Tienda</span><small>Detalle</small></button>
         </div>
         <div class="navStatus"><span class="statusDot" aria-hidden="true"></span><span id="dataStatus">Validando datos…</span></div>
       </nav>
@@ -33,9 +32,9 @@
           <h2 id="pageTitle">Vista ejecutiva RD</h2>
           <p id="appSubtitle">Dashboard ejecutivo Starbucks</p>
         </div>
-        <button id="exportBtn" class="exportBtn" type="button">
+        <button id="exportBtn" class="exportBtn" type="button" aria-label="Exportar vista actual a PDF">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
-          <span>Exportar PDF</span>
+          <span class="exportLabel">Exportar PDF</span>
         </button>
       </header>
 
@@ -81,7 +80,7 @@
 
   <script src="data.js?v=8.1.0"></script>
   <script src="slicers.js?v=8.1.0"></script>
-  <script src="app.js?v=8.1.0"></script>
+  <script src="app.js?v=9.0.0"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=8.1.0'));
