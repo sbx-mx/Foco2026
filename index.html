@@ -5,42 +5,27 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#006241">
   <title>FOCO 2026</title>
-  <link rel="manifest" href="manifest.webmanifest?v=8.0.0">
+  <link rel="manifest" href="manifest.webmanifest?v=8.1.0">
   <link rel="icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=8.0.0">
+  <link rel="stylesheet" href="style.css?v=8.1.0">
 </head>
 <body>
   <a class="skipLink" href="#content">Ir al contenido</a>
   <div class="appShell">
-    <aside class="sidebar" aria-label="Navegación principal">
-      <div class="brandLockup">
-        <div class="mark"><img src="assets/icons/icon-96.png" alt=""></div>
-        <div class="appTitle">
-          <h1>FOCO 2026</h1>
-          <p>Executive Dashboard</p>
+    <div class="workspace">
+      <nav class="executiveNav" aria-label="Navegación principal">
+        <a class="navBrand" href="#rd" aria-label="FOCO 2026 · Inicio">
+          <span class="mark"><img src="assets/icons/icon-96.png" alt=""></span>
+          <span class="appTitle"><strong>FOCO 2026</strong><small>Executive Dashboard</small></span>
+        </a>
+        <div class="tabs" aria-label="Vistas FOCO">
+          <button class="tab active" data-view="rd" type="button"><span>RD</span></button>
+          <button class="tab" data-view="dm" type="button"><span>DM</span></button>
+          <button class="tab" data-view="tienda" type="button"><span>Tienda</span></button>
         </div>
-      </div>
-      <nav class="tabs" aria-label="Vistas FOCO">
-        <button class="tab active" data-view="rd" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m8 10V5m8 14v-7M2 19h20"/></svg>
-          <span>RD</span>
-        </button>
-        <button class="tab" data-view="dm" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          <span>DM</span>
-        </button>
-        <button class="tab" data-view="tienda" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l2-5h14l2 5M5 13v7h14v-7M9 20v-5h6v5M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></svg>
-          <span>Tienda</span>
-        </button>
+        <div class="navStatus"><span class="statusDot" aria-hidden="true"></span><span id="dataStatus">Validando datos…</span></div>
       </nav>
-      <div class="sidebarFoot">
-        <span class="statusDot" aria-hidden="true"></span>
-        <span id="dataStatus">Validando datos…</span>
-      </div>
-    </aside>
-
     <div class="workspace">
       <header class="appTop">
         <div>
@@ -87,15 +72,19 @@
         <section id="printHeader" class="printHeader"></section>
         <section id="content" class="view" tabindex="-1"></section>
       </main>
+      <footer class="executiveFooter">
+        <span>Diseñado: Jorge Alcantar Aguiar &amp; Enrique César Flores</span>
+        <a href="https://wa.me/message/ENKDSAHYHIGAN1" target="_blank" rel="noopener noreferrer">Comentarios y/o Sugerencias</a>
+      </footer>
     </div>
   </div>
 
-  <script src="data.js?v=8.0.0"></script>
-  <script src="slicers.js?v=8.0.0"></script>
-  <script src="app.js?v=8.0.0"></script>
+  <script src="data.js?v=8.1.0"></script>
+  <script src="slicers.js?v=8.1.0"></script>
+  <script src="app.js?v=8.1.0"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=8.0.0'));
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=8.1.0'));
     }
   </script>
 </body>

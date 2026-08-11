@@ -1,6 +1,7 @@
 const D = window.FOCO_DATA || { directory: [], metrics: [], monthWeeks: {} };
 const $ = id => document.getElementById(id);
-let view = 'rd';
+let view = ['rd','dm','tienda'].includes(location.hash.slice(1)) ? location.hash.slice(1) : (localStorage.focoView || 'rd');
+let renderFrame = 0;
 
 const dir = (D.directory || []).map(d => ({ ...d, ceco: String(d.ceco) }));
 const byCeco = Object.fromEntries(dir.map(d => [d.ceco, d]));
@@ -49,6 +50,26 @@ let actions = JSON.parse(localStorage.focoV6Actions || localStorage.focoV5Action
 let objectives = JSON.parse(localStorage.focoV6Objectives || localStorage.focoV5Objectives || localStorage.focoV4Objectives || '{}');
 let manual = JSON.parse(localStorage.focoV6Manual || localStorage.focoV5Manual || localStorage.focoV4Manual || '{}');
 
+function scheduleRender() {
+  cancelAnimationFrame(renderFrame);
+  renderFrame = requestAnimationFrame(render);
+}
+
+function setView(nextView, pushHistory = true) {
+  if (!['rd', 'dm', 'tienda'].includes(nextView)) return;
+  view = nextView;
+  localStorage.focoView = view;
+  document.querySelectorAll('.tab').forEach(x => {
+    const active = x.dataset.view === view;
+    x.classList.toggle('active', active);
+    x.setAttribute('aria-current', active ? 'page' : 'false');
+  });
+  if (pushHistory && location.hash !== `#${view}`) history.pushState({ view }, '', `#${view}`);
+  syncFilters();
+  updatePageTitle();
+  scheduleRender();
+}
+
 function init() {
   const dataStatus = $('dataStatus');
   if (dataStatus) dataStatus.textContent = D.updatedToWeek ? `Datos al S${D.updatedToWeek}` : 'Datos no disponibles';
@@ -63,24 +84,23 @@ function init() {
   if (typeof window.initExecutiveSlicers === 'function') window.initExecutiveSlicers();
 
   document.querySelectorAll('.tab').forEach(b => {
-    b.onclick = () => {
-      view = b.dataset.view;
-      document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === b));
-      syncFilters();
-      updatePageTitle();
-      render();
-    };
+    b.onclick = () => setView(b.dataset.view);
   });
 
-  $('mes').onchange = render;
-  $('region').onchange = render;
-  $('dm').onchange = render;
-  $('store').onchange = render;
+  $('mes').onchange = scheduleRender;
+  $('region').onchange = scheduleRender;
+  $('dm').onchange = scheduleRender;
+  $('store').onchange = scheduleRender;
   if ($('exportBtn')) $('exportBtn').onclick = exportPDF;
 
-  syncFilters();
-  updatePageTitle();
-  render();
+  window.addEventListener('popstate', () => setView(location.hash.slice(1) || 'rd', false));
+  document.addEventListener('keydown', e => {
+    if (e.altKey && ['1','2','3'].includes(e.key)) {
+      e.preventDefault();
+      setView({ '1':'rd', '2':'dm', '3':'tienda' }[e.key]);
+    }
+  });
+  setView(view, false);
 }
 
 
